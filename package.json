@@ -1,0 +1,19 @@
+{
+  "name": "tastecrave-food-system",
+  "version": "1.0.0",
+  "description": "Artisanal Online Food Ordering System with Real-Time Tracking and Kitchen Management",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test-database.js"
+  },
+  "keywords": [
+    "food-ordering",
+    "ecommerce",
+    "restaurant",
+    "order-tracking",
+    "sqlite"
+  ],
+  "author": "TasteCrave",
+  "license": "MIT"
+}
