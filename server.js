@@ -103,9 +103,20 @@ function serveStaticFile(req, res, filePath) {
   });
 }
 
-const server = http.createServer(async (req, res) => {
-  const parsedUrl = url.parse(req.url, true);
-  const pathname = parsedUrl.pathname;
+async function requestHandler(req, res) {
+  const host = req.headers.host || 'localhost';
+  const rawUrl = req.headers['x-forwarded-uri'] || req.url;
+  const parsedUrl = new URL(rawUrl, `http://${host}`);
+  const query = Object.fromEntries(parsedUrl.searchParams.entries());
+  let pathname = parsedUrl.pathname;
+
+  // Resolve target route if rewritten by Vercel
+  if (req.headers['x-api-route']) {
+    pathname = req.headers['x-api-route'];
+  } else if (query._api_route) {
+    pathname = '/api/' + query._api_route.replace(/^\/+/, '');
+  }
+
   const method = req.method;
 
   // Handle CORS preflight
@@ -133,13 +144,13 @@ const server = http.createServer(async (req, res) => {
     // GET /api/items
     if (method === 'GET' && pathname === '/api/items') {
       const filter = {
-        category: parsedUrl.query.category || 'all',
-        search: parsedUrl.query.search || '',
-        isVeg: parsedUrl.query.isVeg === '1' || parsedUrl.query.isVeg === 'true',
-        isVegan: parsedUrl.query.isVegan === '1' || parsedUrl.query.isVegan === 'true',
-        isSpicy: parsedUrl.query.isSpicy === '1' || parsedUrl.query.isSpicy === 'true',
-        isBestseller: parsedUrl.query.isBestseller === '1' || parsedUrl.query.isBestseller === 'true',
-        sortBy: parsedUrl.query.sortBy || 'featured'
+        category: query.category || 'all',
+        search: query.search || '',
+        isVeg: query.isVeg === '1' || query.isVeg === 'true',
+        isVegan: query.isVegan === '1' || query.isVegan === 'true',
+        isSpicy: query.isSpicy === '1' || query.isSpicy === 'true',
+        isBestseller: query.isBestseller === '1' || query.isBestseller === 'true',
+        sortBy: query.sortBy || 'featured'
       };
       const items = db.getFoodItems(filter);
       sendJson(res, 200, { success: true, items, count: items.length });
@@ -161,8 +172,8 @@ const server = http.createServer(async (req, res) => {
 
     // GET /api/coupons/validate?code=XYZ&subtotal=30
     if (method === 'GET' && pathname === '/api/coupons/validate') {
-      const code = parsedUrl.query.code;
-      const subtotal = parseFloat(parsedUrl.query.subtotal || '0');
+      const code = query.code;
+      const subtotal = parseFloat(query.subtotal || '0');
       const validation = db.validateCoupon(code, subtotal);
       if (!validation.valid) {
         sendJson(res, 400, { success: false, error: validation.message });
@@ -201,7 +212,7 @@ const server = http.createServer(async (req, res) => {
 
     // GET /api/orders - List all orders
     if (method === 'GET' && pathname === '/api/orders') {
-      const limit = parseInt(parsedUrl.query.limit || '50', 10);
+      const limit = parseInt(query.limit || '50', 10);
       const orders = db.getAllOrders(limit);
       sendJson(res, 200, { success: true, orders, count: orders.length });
       return;
@@ -268,6 +279,12 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // Guard: Never serve HTML for API requests
+    if (pathname.startsWith('/api/') || pathname === '/api') {
+      sendJson(res, 404, { success: false, error: `API route not found: ${pathname}` });
+      return;
+    }
+
     // --- STATIC ASSET SERVING ---
     let relativeFilePath = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
     const absolutePath = path.join(PUBLIC_DIR, relativeFilePath);
@@ -277,7 +294,12 @@ const server = http.createServer(async (req, res) => {
     console.error('Server Request Error:', err);
     sendJson(res, 500, { success: false, error: 'Internal Server Error', details: err.message });
   }
-});
+}
+
+const server = http.createServer(requestHandler);
+
+let currentPort = PORT;
+let maxPortRetries = 5;
 
 function startServer(portToUse) {
   server.listen(portToUse, () => {
@@ -290,15 +312,20 @@ function startServer(portToUse) {
 }
 
 server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.warn(`\n[Notice] Port 3000 is currently in use. Automatically trying port 3001...`);
-    startServer(3001);
+  if (err.code === 'EADDRINUSE' && maxPortRetries > 0) {
+    maxPortRetries--;
+    currentPort++;
+    console.warn(`\n[Notice] Port ${currentPort - 1} is currently in use. Automatically trying port ${currentPort}...`);
+    startServer(currentPort);
   } else {
     console.error('Server error:', err);
   }
 });
 
-startServer(PORT);
+// Start listening only when run directly as the main process (e.g. node server.js)
+if (require.main === module && !process.env.VERCEL && !process.env.NOW_REGION && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  startServer(PORT);
+}
 
 // Graceful shutdown
 process.on('SIGINT', () => {
@@ -307,3 +334,8 @@ process.on('SIGINT', () => {
     process.exit(0);
   });
 });
+
+// Export request handler for Vercel Serverless Function & testing
+module.exports = requestHandler;
+module.exports.server = server;
+module.exports.startServer = startServer;
