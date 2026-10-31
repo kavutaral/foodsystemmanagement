@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TasteCrave | Artisanal Online Food Ordering</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍔</text></svg>">
+</head>
+<body>
+
+  <!-- Top Sticky Navigation Bar -->
+  <header class="navbar">
+    <div class="container">
+      <a href="/" class="brand">
+        <span class="brand-icon">🔥</span>
+        <span>TasteCrave</span>
+      </a>
+
+      <!-- Current Address Pill -->
+      <div class="delivery-pill" onclick="promptChangeAddress()" title="Click to change delivery address">
+        <span>📍</span>
+        <span id="current-address-label">742 Evergreen Terrace, Downtown</span>
+        <span style="font-size: 0.75rem; color: var(--color-primary); font-weight: 700;">Edit</span>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="nav-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openOrderHistoryModal()">
+          <span>📋</span>
+          <span>Orders</span>
+        </button>
+
+        <button id="admin-toggle-btn" class="btn btn-secondary btn-sm" onclick="toggleAdminView()">
+          <span>👨‍🍳</span>
+          <span>Kitchen Mode</span>
+        </button>
+
+        <a href="/presentation.html" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration: none;">
+          <span>📊</span>
+          <span>Slides</span>
+        </a>
+
+        <button class="cart-btn" onclick="cartManager.openDrawer()">
+          <span>🛒</span>
+          <span>Cart</span>
+          <span class="cart-badge" style="display: none;">0</span>
+          <span class="cart-header-total" style="font-size: 0.85rem; font-weight: 700;"></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================
+       MAIN CUSTOMER VIEW
+       ========================================== -->
+  <main id="customer-view">
+    <div class="container">
+
+      <!-- Hero Promotional Banner -->
+      <section class="hero">
+        <div class="hero-card">
+          <div class="hero-content">
+            <div class="hero-tag">✨ Savor Gourmet Dining Delivered Fast</div>
+            <h1 class="hero-title">Artisanal Dishes, <span>Straight to Your Door.</span></h1>
+            <p class="hero-desc">From dry-aged truffle smash burgers to woodfired pizzas and fresh poke bowls. Handcrafted by master chefs.</p>
+            <div class="promo-chip-wrapper">
+              <span style="font-size: 0.85rem; color: #cbd5e1;">Available Offers:</span>
+              <div class="promo-chip" onclick="cartManager.quickApply('TASTY20')" title="Click to use 20% off coupon">
+                <span>🏷️ Code: <strong>TASTY20</strong></span>
+                <span class="badge" style="background: rgba(255,255,255,0.2); color: #fff;">20% OFF</span>
+              </div>
+              <div class="promo-chip" onclick="cartManager.quickApply('FIRSTBITE')" title="Click to use $5 off coupon">
+                <span>🏷️ Code: <strong>FIRSTBITE</strong></span>
+                <span class="badge" style="background: rgba(255,255,255,0.2); color: #fff;">$5 OFF</span>
+              </div>
+            </div>
+          </div>
+          <div class="hero-stats">
+            <div class="hero-stat-card">
+              <div class="hero-stat-num">25<small style="font-size: 1rem;">m</small></div>
+              <div class="hero-stat-label">Avg. Delivery</div>
+            </div>
+            <div class="hero-stat-card">
+              <div class="hero-stat-num">4.9★</div>
+              <div class="hero-stat-label">Chef Rating</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Category Filter Tabs -->
+      <section class="categories-section">
+        <div class="categories-scroll" id="categories-container">
+          <!-- Dynamically populated categories -->
+        </div>
+      </section>
+
+      <!-- Search, Dietary Filters & Sort Toolbar -->
+      <section class="filter-bar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" class="search-input" placeholder="Search by dish name, ingredient, or flavor..." autocomplete="off">
+          <button id="search-clear" class="search-clear" title="Clear search">✕</button>
+        </div>
+
+        <div class="filter-toggles">
+          <button class="filter-chip" data-filter="isVeg">
+            <span>🥦</span>
+            <span>Pure Veg</span>
+          </button>
+          <button class="filter-chip" data-filter="isVegan">
+            <span>🌱</span>
+            <span>Vegan</span>
+          </button>
+          <button class="filter-chip" data-filter="isSpicy">
+            <span>🌶️</span>
+            <span>Spicy</span>
+          </button>
+          <button class="filter-chip" data-filter="isBestseller">
+            <span>⭐</span>
+            <span>Bestsellers</span>
+          </button>
+        </div>
+
+        <select id="sort-select" class="sort-select" aria-label="Sort dishes by">
+          <option value="featured">Featured & Recommended</option>
+          <option value="rating">Top Rated (Highest First)</option>
+          <option value="price_asc">Price: Low to High</option>
+          <option value="price_desc">Price: High to Low</option>
+          <option value="prep_time">Fastest Prep Time</option>
+        </select>
+      </section>
+
+      <!-- Menu Header & Food Grid -->
+      <section>
+        <div class="menu-header">
+          <h2 style="font-size: 1.4rem;">Explore Our Menu</h2>
+          <div id="menu-count" class="menu-count">Showing dishes...</div>
+        </div>
+
+        <div class="food-grid" id="food-grid">
+          <!-- Dynamically populated food cards -->
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ==========================================
+       KITCHEN / STORE ADMIN DASHBOARD VIEW
+       ========================================== -->
+  <main id="admin-view" class="admin-view">
+    <div class="container">
+      <div class="admin-header">
+        <div>
+          <h2>👨‍🍳 Kitchen & Live Order Management</h2>
+          <p style="color: var(--color-text-muted); font-size: 0.9rem;">Real-time incoming orders, preparation status, and store sales</p>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="refreshAdminDashboard()">
+          <span>🔄</span>
+          <span>Refresh Live Data</span>
+        </button>
+      </div>
+
+      <!-- Store Stats Overview -->
+      <div class="admin-stats-row">
+        <div class="stat-metric-card">
+          <div class="stat-metric-title">Total Revenue</div>
+          <div class="stat-metric-val" id="stat-revenue">$0.00</div>
+        </div>
+        <div class="stat-metric-card">
+          <div class="stat-metric-title">Active Kitchen Orders</div>
+          <div class="stat-metric-val" id="stat-active" style="color: var(--color-warning);">0</div>
+        </div>
+        <div class="stat-metric-card">
+          <div class="stat-metric-title">Total Lifetime Orders</div>
+          <div class="stat-metric-val" id="stat-orders" style="color: var(--color-secondary);">0</div>
+        </div>
+        <div class="stat-metric-card">
+          <div class="stat-metric-title">Top Selling Dishes</div>
+          <div id="stat-popular" style="font-size: 0.85rem; margin-top: 8px; color: var(--color-text-main);">None yet</div>
+        </div>
+      </div>
+
+      <!-- Kitchen Kanban Columns -->
+      <div class="kitchen-columns">
+        <!-- 1. Received / Incoming -->
+        <div class="kitchen-col">
+          <div class="kitchen-col-header">
+            <span>📥 Incoming (<span id="count-received">0</span>)</span>
+            <span class="badge" style="background: #eff6ff; color: #2563eb;">New</span>
+          </div>
+          <div class="kitchen-order-list" id="col-received-items"></div>
+        </div>
+
+        <!-- 2. In Kitchen / Preparing -->
+        <div class="kitchen-col">
+          <div class="kitchen-col-header">
+            <span>👨‍🍳 Cooking (<span id="count-preparing">0</span>)</span>
+            <span class="badge badge-bestseller">In Kitchen</span>
+          </div>
+          <div class="kitchen-order-list" id="col-preparing-items"></div>
+        </div>
+
+        <!-- 3. Out for Delivery -->
+        <div class="kitchen-col">
+          <div class="kitchen-col-header">
+            <span>🛵 On Way (<span id="count-delivery">0</span>)</span>
+            <span class="badge badge-spicy">Dispatched</span>
+          </div>
+          <div class="kitchen-order-list" id="col-delivery-items"></div>
+        </div>
+
+        <!-- 4. Delivered -->
+        <div class="kitchen-col">
+          <div class="kitchen-col-header">
+            <span>✅ Delivered (<span id="count-delivered">0</span>)</span>
+            <span class="badge badge-veg">Completed</span>
+          </div>
+          <div class="kitchen-order-list" id="col-delivered-items"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ==========================================
+       SLIDE-OUT CART DRAWER
+       ========================================== -->
+  <div class="cart-drawer-overlay" id="cart-drawer-overlay">
+    <aside class="cart-drawer" aria-label="Shopping Cart">
+      <div class="drawer-header">
+        <h3 style="font-size: 1.25rem; display: flex; align-items: center; gap: 8px;">
+          <span>🛒</span>
+          <span>Your Food Cart</span>
+        </h3>
+        <button class="modal-close" onclick="cartManager.closeDrawer()" aria-label="Close cart">✕</button>
+      </div>
+
+      <div class="drawer-body" id="cart-drawer-items">
+        <!-- Items or Empty State rendered dynamically -->
+      </div>
+
+      <div class="drawer-footer" id="cart-drawer-footer">
+        <!-- Bill breakdown, promo codes & Checkout CTA -->
+      </div>
+    </aside>
+  </div>
+
+  <!-- ==========================================
+       ITEM CUSTOMIZER MODAL
+       ========================================== -->
+  <div class="modal-overlay" id="customizer-modal" role="dialog" aria-modal="true">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">Customise Your Dish</div>
+        <button class="modal-close" onclick="closeCustomizerModal()">✕</button>
+      </div>
+      <div class="modal-body" id="customizer-modal-content">
+        <!-- Dynamic sizes, crusts, and extras -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeCustomizerModal()">Cancel</button>
+        <button id="add-custom-to-cart-btn" class="btn btn-primary" onclick="submitCustomizedItem()">
+          Add to Order
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       CHECKOUT MODAL
+       ========================================== -->
+  <div class="modal-overlay" id="checkout-modal" role="dialog" aria-modal="true">
+    <div class="modal-box" style="max-width: 620px;">
+      <div class="modal-header">
+        <div class="modal-title">Complete Your Order</div>
+        <button class="modal-close" onclick="closeCheckoutModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Order Breakdown Accordion / Summary -->
+        <div id="checkout-summary-container"></div>
+
+        <!-- Customer & Delivery Form -->
+        <h4 style="font-size: 1rem; margin-bottom: 12px; border-bottom: 1px solid var(--color-border); padding-bottom: 6px;">
+          1. Delivery Address & Contact
+        </h4>
+
+        <div class="form-row">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label" for="checkout-name">Full Name *</label>
+            <input type="text" id="checkout-name" class="form-input" placeholder="e.g. Alex Morgan" value="Alex Morgan" required>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label" for="checkout-phone">Phone Number *</label>
+            <input type="tel" id="checkout-phone" class="form-input" placeholder="(555) 000-0000" value="(555) 438-9201" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="checkout-email">Email (for receipt)</label>
+          <input type="email" id="checkout-email" class="form-input" placeholder="alex@example.com" value="alex.morgan@example.com">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="checkout-address">Street Address *</label>
+          <input type="text" id="checkout-address" class="form-input" placeholder="House / Flat No., Street, Landmark" value="742 Evergreen Terrace, Apt 4B" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label" for="checkout-city">City / Area</label>
+            <input type="text" id="checkout-city" class="form-input" value="Downtown" placeholder="City">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label" for="checkout-notes">Delivery Instructions</label>
+            <input type="text" id="checkout-notes" class="form-input" placeholder="e.g. Ring bell twice, leave at door">
+          </div>
+        </div>
+
+        <!-- Delivery Speed -->
+        <h4 style="font-size: 1rem; margin-top: 14px; margin-bottom: 10px; border-bottom: 1px solid var(--color-border); padding-bottom: 6px;">
+          2. Delivery Speed
+        </h4>
+        <div style="display: flex; gap: 12px; margin-bottom: 18px;">
+          <label class="opt-card" style="flex: 1; cursor: pointer;">
+            <input type="radio" name="delivery_speed" value="standard" checked onchange="handleDeliverySpeedChange('standard')">
+            <div style="margin-left: 6px;">
+              <div style="font-weight: 700; font-size: 0.9rem;">Standard Delivery</div>
+              <div style="font-size: 0.75rem; color: var(--color-text-muted);">30–40 mins • $3.99</div>
+            </div>
+          </label>
+          <label class="opt-card" style="flex: 1; cursor: pointer;">
+            <input type="radio" name="delivery_speed" value="priority" onchange="handleDeliverySpeedChange('priority')">
+            <div style="margin-left: 6px;">
+              <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-primary);">⚡ Priority Express</div>
+              <div style="font-size: 0.75rem; color: var(--color-text-muted);">15–25 mins • $5.99</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Payment Method Selection -->
+        <h4 style="font-size: 1rem; margin-bottom: 10px; border-bottom: 1px solid var(--color-border); padding-bottom: 6px;">
+          3. Payment Method
+        </h4>
+        <div class="payment-options-grid">
+          <div class="payment-opt-card selected" data-payment="card" onclick="selectPaymentMethod('card')">
+            <div class="payment-opt-icon">💳</div>
+            <div class="payment-opt-name">Credit/Debit Card</div>
+          </div>
+          <div class="payment-opt-card" data-payment="upi" onclick="selectPaymentMethod('upi')">
+            <div class="payment-opt-icon">📱</div>
+            <div class="payment-opt-name">Instant UPI / QR</div>
+          </div>
+          <div class="payment-opt-card" data-payment="cod" onclick="selectPaymentMethod('cod')">
+            <div class="payment-opt-icon">💵</div>
+            <div class="payment-opt-name">Cash on Delivery</div>
+          </div>
+        </div>
+
+        <!-- Card Payment Fields -->
+        <div id="card-payment-details">
+          <div class="form-group">
+            <label class="form-label">Card Number</label>
+            <input type="text" class="form-input" placeholder="4532 •••• •••• 8891" value="4532 8901 2345 8891">
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Expiry Date</label>
+              <input type="text" class="form-input" placeholder="MM/YY" value="08/28">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">CVV</label>
+              <input type="password" class="form-input" placeholder="•••" value="842" maxlength="4">
+            </div>
+          </div>
+        </div>
+
+        <!-- UPI Details -->
+        <div id="upi-payment-details" style="display: none; text-align: center; background: #f8fafc; padding: 16px; border-radius: var(--radius-md); border: 1px dashed var(--color-border);">
+          <div style="font-size: 2.2rem; margin-bottom: 4px;">📲</div>
+          <div style="font-weight: 700; font-size: 0.95rem;">Instant Scan & Pay</div>
+          <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 10px;">Scan with Google Pay, Apple Pay, PhonePe or any UPI app</p>
+          <div style="display: inline-block; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid var(--color-border); font-family: monospace; font-size: 0.8rem; font-weight: bold;">
+            tastecrave@foodpay.online
+          </div>
+        </div>
+
+        <!-- COD Details -->
+        <div id="cod-payment-details" style="display: none; background: #f8fafc; padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--color-border);">
+          <div style="font-weight: 600; font-size: 0.9rem;">💵 Cash on Delivery Selected</div>
+          <div style="font-size: 0.8rem; color: var(--color-text-muted);">Please have the exact cash or contactless card ready when the courier arrives at your door.</div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeCheckoutModal()">Cancel</button>
+        <button id="place-order-btn" class="btn btn-primary btn-lg" onclick="submitOrder()">
+          Place Order
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       LIVE ORDER TRACKER MODAL
+       ========================================== -->
+  <div class="modal-overlay" id="tracker-modal" role="dialog" aria-modal="true">
+    <div class="modal-box" style="max-width: 580px;">
+      <div class="modal-header">
+        <div class="modal-title">Live Order Tracker</div>
+        <button class="modal-close" onclick="closeOrderTracker()">✕</button>
+      </div>
+      <div class="modal-body" id="tracker-content">
+        <!-- Rendered by tracker.js -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeOrderTracker()">Back to Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       ORDER HISTORY MODAL
+       ========================================== -->
+  <div class="modal-overlay" id="history-modal" role="dialog" aria-modal="true">
+    <div class="modal-box" style="max-width: 540px;">
+      <div class="modal-header">
+        <div class="modal-title">Your Order History</div>
+        <button class="modal-close" onclick="closeOrderHistoryModal()">✕</button>
+      </div>
+      <div class="modal-body" id="history-modal-content">
+        <!-- Rendered by tracker.js -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeOrderHistoryModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Application Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/menu.js"></script>
+  <script src="js/checkout.js"></script>
+  <script src="js/tracker.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
